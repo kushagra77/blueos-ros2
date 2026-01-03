@@ -2,23 +2,30 @@ ARG ROS_DISTRO=humble
 FROM ros:$ROS_DISTRO-ros-base
 WORKDIR /root/
 
-# Install general packages (including mavros and foxglove)
+# 1. Install general packages + SSH CLIENT + Vision Libraries
 RUN rm /var/lib/dpkg/info/libc-bin.* \
     && apt-get clean \
     && apt-get update \
-    && apt-get install libc-bin \
+    && apt-get install -y libc-bin \
     && apt-get install -q -y --no-install-recommends \
-    tmux nano nginx wget netcat \
+    libssl-dev pkg-config \
+    # We only need openssh-client to use git with ssh
+    tmux nano nginx wget netcat openssh-client git \
     ros-${ROS_DISTRO}-mavros ros-${ROS_DISTRO}-mavros-extras ros-${ROS_DISTRO}-mavros-msgs \
     ros-${ROS_DISTRO}-geographic-msgs \
     ros-${ROS_DISTRO}-foxglove-bridge \
-    python3-dev python3-pip \
+    python3-dev python3-pip python3-opencv \
     && apt-get autoremove -y \
     && apt-get clean -y \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install --no-cache-dir setuptools pip packaging -U
 
-# Install gscam2 deps
+# 2. Research Stack (Numpy, Matplotlib)
+RUN pip3 install --no-cache-dir numpy matplotlib
+
+# [Section 3 removed: No SSH server config needed]
+
+# 4. Gstreamer Deps
 RUN apt-get update \
     && apt-get install -q -y --no-install-recommends \
     libgstreamer1.0-0 gstreamer1.0-plugins-base gstreamer1.0-plugins-good \
@@ -30,14 +37,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/* \
     && pip3 install --no-cache-dir setuptools==79.0.1 pip packaging -U
 
-# Install ping-python from source (Newer commits don't seem to work with the ping1d)
+# 5. Ping-Python
 RUN cd /root/ \
     && git clone https://github.com/bluerobotics/ping-python.git -b deployment \
     && cd ping-python \
     && git checkout 3d41ddd \
     && python3 setup.py install --user
 
-# Build ROS2 workspace with remaining packages
+# 6. ROS2 Workspace Build
 COPY ros2_ws /root/ros2_ws
 RUN cd /root/ros2_ws/ \
     && python3 -m pip install --no-cache-dir -r src/mavros_control/requirements.txt \
@@ -49,61 +56,41 @@ RUN cd /root/ros2_ws/ \
     && ros2 run mavros install_geographiclib_datasets.sh \
     && apt-get autoremove -y \
     && apt-get clean -y \
-    && rm -rf /var/lib/apt/lists/* \
-    && echo "source /ros_entrypoint.sh" >> ~/.bashrc \
-    && echo "source /root/ros2_ws/install/setup.sh " >> ~/.bashrc
+    && rm -rf /var/lib/apt/lists/*
 
-# Setup ttyd for web terminal interface
+# 7. ttyd & Config Files
 ADD files/install-ttyd.sh /install-ttyd.sh
 RUN bash /install-ttyd.sh && rm /install-ttyd.sh
-
-# Copy configuration files
 COPY files/nginx.conf /etc/nginx/nginx.conf
 COPY files/index.html /usr/share/ttyd/index.html
-
-# Copy start script and other files
 RUN mkdir -p /site
 COPY files/register_service /site/register_service
 COPY files/start.sh /start.sh
 
-# Add docker configuration
-LABEL version="0.0.4"
+# 8. RESTORED BASHRC LINES + NEW ALIASES
+RUN echo "source /ros_entrypoint.sh" >> ~/.bashrc \
+    && echo "source /root/ros2_ws/install/setup.sh" >> ~/.bashrc \
+    && echo "set +e" >> ~/.bashrc
+
+RUN echo "alias cb='colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release && source install/setup.bash'" >> ~/.bashrc \
+    && echo "alias si='source install/setup.bash'" >> ~/.bashrc
+
+# 9. Labels & Entrypoint (Simplified)
+LABEL version="0.0.1"
 LABEL permissions='{\
   "NetworkMode": "host",\
   "HostConfig": {\
     "Binds": [\
       "/dev:/dev:rw",\
-      "/usr/blueos/extensions/ros2/:/root/persistent_ws/:rw"\
+      "/usr/blueos/extensions/ros2/:/root/persistent_ws/:rw",\
+      "/root/.ssh:/root/.ssh:ro"\
     ],\
     "Privileged": true,\
     "NetworkMode": "host"\
-  },\
-  "Env": [\
-  ]\
-}'
-LABEL authors='[\
-  {\
-    "name": "Kalvik Jakkala",\
-    "email": "itskalvik@gmail.com"\
   }\
-]'
-LABEL company='{\
-  "about": "",\
-  "name": "ItsKalvik",\
-  "email": "itskalvik@gmail.com"\
 }'
-LABEL readme="https://raw.githubusercontent.com/itskalvik/blueos-ros2/master/README.md"
-LABEL type="other"
-LABEL tags='[\
-  "ros2",\
-  "sonar",\
-  "camera",\
-  "foxglove",\
-  "ardusub",\
-  "blueos",\
-  "robot"\
-]'
 
-# Keep bash alive even if there is an error
-RUN echo "set +e" >> ~/.bashrc
+# No need to expose port 22 anymore
+EXPOSE 4717
+# Simple entrypoint: just the original start script
 ENTRYPOINT [ "/start.sh" ]

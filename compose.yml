@@ -1,6 +1,7 @@
 services:
   ros2:
-    image: itskalvik/blueos-ros2:0.0.4
+    image: krushion/blueos-ros2-manta:0.0.1
+    container_name: mantaclaus_ros2
     build:
       context: ./
       dockerfile: Dockerfile
@@ -11,17 +12,22 @@ services:
     environment:
       - TERM=xterm-256color
       - XDG_RUNTIME_DIR
+      - ROS_DOMAIN_ID=0
 
     volumes:
-      - ./ros2_ws/:/home/ros2_ws/
+      # Map workspace code
+      - ./ros2_ws/src/:/root/ros2_ws/src/
+      # Persistent workspace for BlueOS
+      - ./persistent_ws:/root/persistent_ws
+      # PERSIST SSH KEYS: This uses the keys from your Raspberry Pi inside the container
+      - ~/.ssh:/root/.ssh:ro
 
     ports:
       - "4717:4717"
-      - "88:88"
-      - "8080:8080"
-      - "9000:9000"
+      - "2022:22" # SSH into container via port 2022
 
-    #network_mode: host
     privileged: true
+    network_mode: host
     tty: true
     stdin_open: true
+    restart: unless-stopped
