@@ -11,6 +11,11 @@ RUN rm /var/lib/dpkg/info/libc-bin.* \
     libssl-dev pkg-config \
     # We only need openssh-client to use git with ssh
     tmux nano nginx wget netcat openssh-client git \
+     # Added Image Transport and CV Bridge here to fix the CMake error
+    ros-${ROS_DISTRO}-image-transport \
+    ros-${ROS_DISTRO}-cv-bridge \
+    ros-${ROS_DISTRO}-sensor-msgs \
+    ros-${ROS_DISTRO}-compressed-image-transport \
     ros-${ROS_DISTRO}-mavros ros-${ROS_DISTRO}-mavros-extras ros-${ROS_DISTRO}-mavros-msgs \
     ros-${ROS_DISTRO}-geographic-msgs \
     ros-${ROS_DISTRO}-foxglove-bridge \
@@ -69,10 +74,9 @@ COPY files/start.sh /start.sh
 
 # 8. RESTORED BASHRC LINES + NEW ALIASES
 RUN echo "source /ros_entrypoint.sh" >> ~/.bashrc \
-    && echo "source /root/ros2_ws/install/setup.sh" >> ~/.bashrc \
-    && echo "set +e" >> ~/.bashrc
-
-RUN echo "alias cb='colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release && source install/setup.bash'" >> ~/.bashrc \
+    && echo "set +e" >> ~/.bashrc \
+    && echo "alias cb='colcon build && source install/setup.bash'" >> ~/.bashrc \
+    && echo "alias cbp='colcon build --packages-select'" >> ~/.bashrc \
     && echo "alias si='source install/setup.bash'" >> ~/.bashrc
 
 # 9. Labels & Entrypoint (Simplified)
