@@ -76,6 +76,7 @@ COPY files/start.sh /start.sh
 RUN echo "source /ros_entrypoint.sh" >> ~/.bashrc \
     && echo "set +e" >> ~/.bashrc \
     && echo "alias cb='colcon build --symlink-install && source install/setup.bash'" >> ~/.bashrc \
+    && echo "alias ccb='rm -rf build/ install/ log/ && cb'" >> ~/.bashrc \
     && echo "alias cbp='colcon build --symlink-install --packages-select'" >> ~/.bashrc \
     && echo "alias si='source install/setup.bash'" >> ~/.bashrc
 
