@@ -1,5 +1,6 @@
 #!/bin/bash
-
+echo " CHECK EXTENSION SETTINGS AND COPY THEM OVER BEFORE CHANGING EXTENSION "
+exit 0
 # check for version argument
 if [ -z "$1" ]; then
   echo "Usage: $0 <version>"
