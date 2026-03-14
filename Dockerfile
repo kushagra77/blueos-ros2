@@ -75,8 +75,8 @@ COPY files/start.sh /start.sh
 # 8. RESTORED BASHRC LINES + NEW ALIASES
 RUN echo "source /ros_entrypoint.sh" >> ~/.bashrc \
     && echo "set +e" >> ~/.bashrc \
-    && echo "alias cb='colcon build && source install/setup.bash'" >> ~/.bashrc \
-    && echo "alias cbp='colcon build --packages-select'" >> ~/.bashrc \
+    && echo "alias cb='colcon build --symlink-install && source install/setup.bash'" >> ~/.bashrc \
+    && echo "alias cbp='colcon build --symlink-install --packages-select'" >> ~/.bashrc \
     && echo "alias si='source install/setup.bash'" >> ~/.bashrc
 
 # 9. Labels & Entrypoint (Simplified)
