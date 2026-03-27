@@ -20,7 +20,7 @@ services:
       # Persistent workspace for BlueOS
       - ./persistent_ws:/root/persistent_ws
       # PERSIST SSH KEYS: This uses the keys from your Raspberry Pi inside the container
-      - ~/.ssh:/root/.ssh:ro
+      - /home/pi/.ssh:/root/.ssh
 
     ports:
       - "4717:4717"
@@ -31,3 +31,18 @@ services:
     tty: true
     stdin_open: true
     restart: unless-stopped
+
+
+# {
+# NetworkMode:"host"
+# HostConfig:{
+# Binds:[
+# 0:"/usr/blueos/extensions/ros2/:/root/persistent_ws/:rw"
+# 1:"/dev:/dev:rw"
+# 2:"/home/pi/.ssh:/root/.ssh:rw"
+# ]
+# Privileged:true
+# NetworkMode:"host"
+# }
+# Env:[]
+# }
